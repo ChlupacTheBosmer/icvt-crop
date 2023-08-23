@@ -1,6 +1,9 @@
+# Extra packages
+import cv2
+
+# Default part of python
 import random
 import os
-import cv2
 
 def capture_crop(self, frame, point):
     # Define logger
