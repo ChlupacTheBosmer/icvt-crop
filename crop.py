@@ -1,3 +1,6 @@
+# ICVT modules
+from ..database import sqlite_data
+
 # Extra packages
 import cv2
 
@@ -13,7 +16,6 @@ def capture_crop(self, frame, point):
     x, y = point
 
     # Add a random offset to the coordinates, but ensure they remain within the image bounds
-    # DONE: Implement Milesight functionality
     frame_width, frame_height = self.video_file_object.get_frame_shape()
 
     # Check if any of the dimensions is smaller than crop_size and if so upscale the image to prevent crops smaller than desired crop_size
@@ -51,9 +53,16 @@ def capture_crop(self, frame, point):
     return crop_img, x1, y1, x2, y2
 
 
-def generate_frames(self, frame, success, tag, index, frame_number_start):
+def generate_frames(self, frame, success, tag, index, frame_number_start, frame_metadata_database: sqlite_data.frameDatabase = None):
+
     # Define logger
     self.logger.debug(f"Running function generate_frames({index})")
+
+    # Check if database exists and shall be used for logging
+    if frame_metadata_database is not None:
+        log_frame_metadata_into_database = True
+    else:
+        log_frame_metadata_into_database = False
 
     # Prepare name elements
     filename_parts = tag[:-4].split("_")
@@ -89,6 +98,8 @@ def generate_frames(self, frame, success, tag, index, frame_number_start):
                     cv2.imwrite(image_path, crop_img)
                     image_paths.append(image_path)
                     self.image_details_dict[image_name] = [image_path, frame_number, roi_number, visit_number, 0]
+                    if log_frame_metadata_into_database:
+                        frame_metadata_database.add_database_entry(recording_identifier, timestamp, roi_number, frame_number, visit_number, x1, y1, x2, y2, image_path)
             if self.whole_frame == 1:
                 frame_number = frame_number_start + frame_count
                 visit_number = self.visit_index
@@ -108,14 +119,12 @@ def generate_frames(self, frame, success, tag, index, frame_number_start):
             frame_count += frame_skip_loc
 
         # Read the next frame
-        # DONE: Implement Milesight functionality
         frame_to_read = frame_number_start + frame_count
         success, frame = self.video_file_object.read_video_frame(frame_to_read)
 
         # If the frame count is equal or larger than the amount of frames that comprises the duration of the visit end the loop
         if not (frame_count < (self.visit_duration * self.fps) - 1):
             # Release the video capture object and close all windows
-            # DONE: Implement Milesight functionality
             if not self.video_file_object.video_origin == "MS":
                 self.video_file_object.cap.release()
             cv2.destroyAllWindows()
