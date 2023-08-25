@@ -1,3 +1,5 @@
+from ..database import sqlite_data
+
 # Extra packages
 import cv2
 
@@ -53,10 +55,14 @@ def capture_crop(self, frame, point, video_file_object):
 
 def generate_frames(self, video_file_object, list_of_rois, frame_number_start, visit_duration, visit_number: int = 0,
                     frames_to_skip: int = 15, frames_per_visit: int = 0, generate_cropped_frames: bool = True,
-                    generate_whole_frames: bool = False, name_prefix: str = ""):
+                    generate_whole_frames: bool = False, name_prefix: str = "",
+                    frame_metadata_database: sqlite_data.frameDatabase = None):
 
     # Define logger
     self.logger.debug(f"Running function generate_frames({list_of_rois})")
+
+    # Check if database exists and shall be used for logging
+    log_frame_metadata_into_database = True if frame_metadata_database is not None else False
 
     # Prepare name elements
     recording_identifier = video_file_object.recording_identifier
@@ -86,6 +92,11 @@ def generate_frames(self, video_file_object, list_of_rois, frame_number_start, v
                     cropped_frame = icvtFrame(crop_img, recording_identifier, timestamp, frame_number, roi_number+1,
                                               (x1, y1), (x2, y2),
                                               visit_number, name_prefix)
+                    if log_frame_metadata_into_database:
+                        cropped_frame.id = frame_metadata_database.add_database_entry(recording_identifier, timestamp, roi_number,
+                                                                   frame_number, visit_number, x1, y1, x2, y2,
+                                                                   cropped_frame.name)
+                    print(cropped_frame)
                     yield cropped_frame
                     # cv2.imwrite(image_path, crop_img)
                     # image_paths.append(image_path)
@@ -137,6 +148,7 @@ class icvtFrame():
         self.visitor_detected = False
         self.is_cropped = True if roi_number >= 0 else False
         self.frame_path = None
+        self.id = None
 
         # Define name based on whether it is a cropped or a whole frame automatically
         name_if_cropped = (f"{self.name_prefix}{self.recording_identifier}_{self.timestamp}_{self.roi_number}_"
