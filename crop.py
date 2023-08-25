@@ -83,7 +83,7 @@ def generate_frames(self, video_file_object, list_of_rois, frame_number_start, v
                     crop_img, x1, y1, x2, y2 = capture_crop(self, frame, point, video_file_object)
 
                     # Construct frame
-                    cropped_frame = icvtFrame(frame, recording_identifier, timestamp, frame_number, roi_number+1,
+                    cropped_frame = icvtFrame(crop_img, recording_identifier, timestamp, frame_number, roi_number+1,
                                               (x1, y1), (x2, y2),
                                               visit_number, name_prefix)
                     yield cropped_frame
@@ -136,6 +136,7 @@ class icvtFrame():
         self.name_prefix = name_prefix
         self.visitor_detected = False
         self.is_cropped = True if roi_number >= 0 else False
+        self.frame_path = None
 
         # Define name based on whether it is a cropped or a whole frame automatically
         name_if_cropped = (f"{self.name_prefix}{self.recording_identifier}_{self.timestamp}_{self.roi_number}_"
@@ -152,12 +153,13 @@ class icvtFrame():
 
         return output_path
 
-    def save_frame(self, output_folder):
+    def save(self, output_folder):
 
         output_path = self.generate_output_path(output_folder)
 
         try:
             cv2.imwrite(output_path, self.frame)
+            self.frame_path = output_path
             return True
         except Exception as e:
             print(e)
