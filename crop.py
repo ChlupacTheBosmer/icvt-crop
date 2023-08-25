@@ -1,6 +1,3 @@
-# ICVT modules
-from ..database import sqlite_data
-
 # Extra packages
 import cv2
 
@@ -8,7 +5,7 @@ import cv2
 import random
 import os
 
-def capture_crop(self, frame, point):
+def capture_crop(self, frame, point, video_file_object):
     # Define logger
     self.logger.debug(f"Running function capture_crop({point})")
 
@@ -16,7 +13,8 @@ def capture_crop(self, frame, point):
     x, y = point
 
     # Add a random offset to the coordinates, but ensure they remain within the image bounds
-    frame_width, frame_height = self.video_file_object.get_frame_shape()
+    # TODO: Why is it using cap, or gets the size from video - is it not a numpy cv2 frame?
+    frame_width, frame_height = video_file_object.get_frame_shape()
 
     # Check if any of the dimensions is smaller than crop_size and if so upscale the image to prevent crops smaller than desired crop_size
     if frame_height < self.crop_size or frame_width < self.crop_size:
@@ -53,82 +51,116 @@ def capture_crop(self, frame, point):
     return crop_img, x1, y1, x2, y2
 
 
-def generate_frames(self, frame, success, tag, index, frame_number_start, frame_metadata_database: sqlite_data.frameDatabase = None):
+def generate_frames(self, video_file_object, list_of_rois, frame_number_start, visit_duration, visit_number: int = 0,
+                    frames_to_skip: int = 15, frames_per_visit: int = 0, generate_cropped_frames: bool = True,
+                    generate_whole_frames: bool = False, name_prefix: str = ""):
 
     # Define logger
-    self.logger.debug(f"Running function generate_frames({index})")
-
-    # Check if database exists and shall be used for logging
-    if frame_metadata_database is not None:
-        log_frame_metadata_into_database = True
-    else:
-        log_frame_metadata_into_database = False
+    self.logger.debug(f"Running function generate_frames({list_of_rois})")
 
     # Prepare name elements
-    filename_parts = tag[:-4].split("_")
-    recording_identifier = "_".join(filename_parts[:-3])
-    timestamp = "_".join(filename_parts[-3:])
+    recording_identifier = video_file_object.recording_identifier
+    timestamp = video_file_object.timestamp
 
-    # Define local variables
-    crop_counter = 1
-    frame_skip_loc = self.frame_skip
-
-    # Calculate the frame skip variable based on the limited number of frames per visit
-    if self.frames_per_visit > 0:
-        frame_skip_loc = int((self.visit_duration * self.fps) // self.frames_per_visit)
-        if frame_skip_loc < 1:
-            frame_skip_loc = 1
+    # Calculate the frame skip variable based on the limited number of frames per visit or use the custom set value
+    if frames_per_visit > 0:
+        frames_to_skip = int((visit_duration * video_file_object.fps) // frames_per_visit) if not frames_to_skip < 1 else 1
 
     # Loop through the video and crop y images every n-th frame
     frame_count = 0
-    image_paths = []
+
+    # Read first frame
+    success, frame = video_file_object.read_video_frame(frame_number_start)
 
     while success:
         # Crop images every n-th frame
-        if int(frame_count % frame_skip_loc) == 0:
-            for i, point in enumerate(self.points_of_interest_entry[index][0]):
-                if self.cropped_frames == 1:
-                    crop_img, x1, y1, x2, y2 = capture_crop(self, frame, point)
-                    frame_number = frame_number_start + frame_count
-                    roi_number = i + 1
-                    visit_number = self.visit_index
-                    image_name = f"{self.prefix}{recording_identifier}_{timestamp}_{roi_number}_{frame_number}_{visit_number}_{x1},{y1}_{x2},{y2}.jpg"  # Now the output images will be ordered by the ROI therefore one will be able to delete whole segments of pictures.
-                    image_path = os.path.join(self.output_folder, image_name)
-                    # image_path = f"./{self.output_folder}/{self.prefix}{recording_identifier}_{timestamp}_{frame_number_start + frame_count}_{crop_counter}_{i + 1}_{x1},{y1}_{x2},{y2}.jpg"
-                    cv2.imwrite(image_path, crop_img)
-                    image_paths.append(image_path)
-                    self.image_details_dict[image_name] = [image_path, frame_number, roi_number, visit_number, 0]
-                    if log_frame_metadata_into_database:
-                        frame_metadata_database.add_database_entry(recording_identifier, timestamp, roi_number, frame_number, visit_number, x1, y1, x2, y2, image_path)
-            if self.whole_frame == 1:
-                frame_number = frame_number_start + frame_count
-                visit_number = self.visit_index
-                image_name = f"{self.prefix}{recording_identifier}_{timestamp}_{frame_number}_{visit_number}_whole.jpg"
-                image_path = os.path.join(self.output_folder, "whole frames", image_name)
-                # image_path = f"./{self.output_folder}/whole frames/{self.prefix}{recording_identifier}_{timestamp}_{frame_number_start + frame_count}_{crop_counter}_whole.jpg"
-                cv2.imwrite(image_path, frame)
-            crop_counter += 1
+        if int(frame_count % frames_to_skip) == 0:
+            frame_number = frame_number_start + frame_count
+            if generate_cropped_frames:
+                for roi_number, point in enumerate(list_of_rois):
+
+                    # Crop the frame
+                    crop_img, x1, y1, x2, y2 = capture_crop(self, frame, point, video_file_object)
+
+                    # Construct frame
+                    cropped_frame = icvtFrame(frame, recording_identifier, timestamp, frame_number, roi_number+1,
+                                              (x1, y1), (x2, y2),
+                                              visit_number, name_prefix)
+                    yield cropped_frame
+                    # cv2.imwrite(image_path, crop_img)
+                    # image_paths.append(image_path)
+                    # self.image_details_dict[image_name] = [image_path, frame_number, roi_number, visit_number, 0]
+            if generate_whole_frames:
+
+                # Construct frame
+                whole_frame = icvtFrame(frame, recording_identifier, timestamp, frame_number, visit_number=visit_number, name_prefix=name_prefix)
+                yield whole_frame
+                # cv2.imwrite(image_path, frame)
 
         # If the random frame skip interval is activated add a random number to the counter or add the set frame skip interval
         if self.randomize == 1:
-            if (frame_skip_loc - frame_count == 1):
+            if (frames_to_skip - frame_count == 1):
                 frame_count += 1
             else:
-                frame_count += random.randint(1, max((frame_skip_loc - frame_count), 2))
+                frame_count += random.randint(1, max((frames_to_skip - frame_count), 2))
         else:
-            frame_count += frame_skip_loc
-
-        # Read the next frame
-        frame_to_read = frame_number_start + frame_count
-        success, frame = self.video_file_object.read_video_frame(frame_to_read)
+            frame_count += frames_to_skip
 
         # If the frame count is equal or larger than the amount of frames that comprises the duration of the visit end the loop
-        if not (frame_count < (self.visit_duration * self.fps) - 1):
+        if frame_count >= (visit_duration * video_file_object.fps) - 1:
             # Release the video capture object and close all windows
-            if not self.video_file_object.video_origin == "MS":
-                self.video_file_object.cap.release()
+            if not video_file_object.video_origin == "MS":
+                video_file_object.cap.release()
             cv2.destroyAllWindows()
             break
 
-    # Return the resulting list of image paths for future reference
-    return image_paths
+        # Read the next frame
+        frame_to_read = frame_number_start + frame_count
+        success, frame = video_file_object.read_video_frame(frame_to_read)
+
+
+class icvtFrame():
+    def __init__(self, frame, recording_identifier, timestamp,
+                 frame_number, roi_number: int = -1, crop_upper_left_corner=None, crop_bottom_right_corner=None,
+                 visit_number: int = 0, name_prefix: str = ""):
+
+        # Init variables
+        self.frame = frame
+        self.crop_upper_left_corner = crop_upper_left_corner if crop_upper_left_corner is not None else (0, 0)
+        self.crop_bottom_right_corner = crop_bottom_right_corner if crop_bottom_right_corner is not None else frame.shape[:2][::-1]
+        self.recording_identifier = recording_identifier
+        self.timestamp = timestamp
+        self.frame_number = frame_number
+        self.roi_number = roi_number
+        self.visit_number = visit_number
+        self.name_prefix = name_prefix
+        self.visitor_detected = False
+        self.is_cropped = True if roi_number >= 0 else False
+
+        # Define name based on whether it is a cropped or a whole frame automatically
+        name_if_cropped = (f"{self.name_prefix}{self.recording_identifier}_{self.timestamp}_{self.roi_number}_"
+                           f"{self.frame_number}_{self.visit_number}_{self.crop_upper_left_corner[0]},"
+                           f"{self.crop_upper_left_corner[1]}_{self.crop_bottom_right_corner[0]},"
+                           f"{self.crop_bottom_right_corner[1]}.jpg")
+        name_if_whole = (f"{self.name_prefix}{self.recording_identifier}_{self.timestamp}_{self.frame_number}_"
+                         f"{self.visit_number}_whole.jpg")
+        self.name = name_if_cropped if not self.roi_number < 0 else name_if_whole
+
+    def generate_output_path(self, output_folder):
+
+        output_path = os.path.join(output_folder, self.name) if self.is_cropped else os.path.join(output_folder, "whole frames", self.name)
+
+        return output_path
+
+    def save_frame(self, output_folder):
+
+        output_path = self.generate_output_path(output_folder)
+
+        try:
+            cv2.imwrite(output_path, self.frame)
+            return True
+        except Exception as e:
+            print(e)
+            return False
+
+
