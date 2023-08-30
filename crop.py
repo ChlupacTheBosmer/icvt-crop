@@ -6,6 +6,7 @@ import cv2
 # Default part of python
 import random
 import os
+import asyncio
 
 def capture_crop(self, frame, point, video_file_object):
     # Define logger
@@ -15,8 +16,7 @@ def capture_crop(self, frame, point, video_file_object):
     x, y = point
 
     # Add a random offset to the coordinates, but ensure they remain within the image bounds
-    # TODO: Why is it using cap, or gets the size from video - is it not a numpy cv2 frame?
-    frame_width, frame_height = video_file_object.get_frame_shape()
+    frame_height, frame_width,_ = frame.shape
 
     # Check if any of the dimensions is smaller than crop_size and if so upscale the image to prevent crops smaller than desired crop_size
     if frame_height < self.crop_size or frame_width < self.crop_size:
@@ -55,14 +55,10 @@ def capture_crop(self, frame, point, video_file_object):
 
 def generate_frames(self, video_file_object, list_of_rois, frame_number_start, visit_duration, visit_number: int = 0,
                     frames_to_skip: int = 15, frames_per_visit: int = 0, generate_cropped_frames: bool = True,
-                    generate_whole_frames: bool = False, name_prefix: str = "",
-                    frame_metadata_database: sqlite_data.frameDatabase = None):
+                    generate_whole_frames: bool = False, name_prefix: str = ""):
 
     # Define logger
     self.logger.debug(f"Running function generate_frames({list_of_rois})")
-
-    # Check if database exists and shall be used for logging
-    log_frame_metadata_into_database = True if frame_metadata_database is not None else False
 
     # Prepare name elements
     recording_identifier = video_file_object.recording_identifier
@@ -92,10 +88,10 @@ def generate_frames(self, video_file_object, list_of_rois, frame_number_start, v
                     cropped_frame = icvtFrame(crop_img, recording_identifier, timestamp, frame_number, roi_number+1,
                                               (x1, y1), (x2, y2),
                                               visit_number, name_prefix)
-                    if log_frame_metadata_into_database:
-                        cropped_frame.id = frame_metadata_database.add_database_entry(recording_identifier, timestamp, roi_number,
-                                                                   frame_number, visit_number, x1, y1, x2, y2,
-                                                                   cropped_frame.name)
+                    # if log_frame_metadata_into_database:
+                    #     cropped_frame.id = frame_metadata_database.add_database_entry(recording_identifier, timestamp, roi_number,
+                    #                                                frame_number, visit_number, x1, y1, x2, y2,
+                    #                                                cropped_frame.name)
                     print(cropped_frame)
                     yield cropped_frame
                     # cv2.imwrite(image_path, crop_img)
