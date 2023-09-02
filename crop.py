@@ -72,9 +72,11 @@ def generate_frames(self, video_file_object, list_of_rois, frame_number_start, v
     frame_count = 0
 
     # Read first frame
-    success, frame = video_file_object.read_video_frame(frame_number_start)
+    print(dir(video_file_object))
+    print(type(video_file_object))
+    frame = video_file_object.read_video_frame(frame_indices=frame_number_start, stream=False)[0][3]
 
-    while success:
+    while True:
         # Crop images every n-th frame
         if int(frame_count % frames_to_skip) == 0:
             frame_number = frame_number_start + frame_count
@@ -88,11 +90,7 @@ def generate_frames(self, video_file_object, list_of_rois, frame_number_start, v
                     cropped_frame = icvtFrame(crop_img, recording_identifier, timestamp, frame_number, roi_number+1,
                                               (x1, y1), (x2, y2),
                                               visit_number, name_prefix)
-                    # if log_frame_metadata_into_database:
-                    #     cropped_frame.id = frame_metadata_database.add_database_entry(recording_identifier, timestamp, roi_number,
-                    #                                                frame_number, visit_number, x1, y1, x2, y2,
-                    #                                                cropped_frame.name)
-                    print(cropped_frame)
+
                     yield cropped_frame
                     # cv2.imwrite(image_path, crop_img)
                     # image_paths.append(image_path)
@@ -116,14 +114,12 @@ def generate_frames(self, video_file_object, list_of_rois, frame_number_start, v
         # If the frame count is equal or larger than the amount of frames that comprises the duration of the visit end the loop
         if frame_count >= (visit_duration * video_file_object.fps) - 1:
             # Release the video capture object and close all windows
-            if not video_file_object.video_origin == "MS":
-                video_file_object.cap.release()
             cv2.destroyAllWindows()
             break
 
         # Read the next frame
         frame_to_read = frame_number_start + frame_count
-        success, frame = video_file_object.read_video_frame(frame_to_read)
+        frame = video_file_object.read_video_frame(frame_to_read, False)[0][3]
 
 
 class icvtFrame():
