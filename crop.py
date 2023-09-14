@@ -72,8 +72,6 @@ def generate_frames(self, video_file_object, list_of_rois, frame_number_start, v
     frame_count = 0
 
     # Read first frame
-    print(dir(video_file_object))
-    print(type(video_file_object))
     frame = video_file_object.read_video_frame(frame_indices=frame_number_start, stream=False)[0][3]
 
     while True:
