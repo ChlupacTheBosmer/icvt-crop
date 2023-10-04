@@ -1,12 +1,9 @@
-from ..database import sqlite_data
-
 # Extra packages
 import cv2
 
 # Default part of python
 import random
 import os
-import asyncio
 
 def capture_crop(self, frame, point, video_file_object):
     # Define logger
