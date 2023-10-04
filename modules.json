@@ -1,0 +1,3 @@
+{
+    "submodules": ["icvt/modules/video", "icvt/modules/yolo"]
+}
