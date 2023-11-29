@@ -19,7 +19,10 @@ class FrameGenerator():
         self.output_folder = output_folder
 
         # Create a dictionary for fast ROI lookup
-        self.roi_dict = {os.path.basename(video_filepath): roi_entry for roi_entry, video_filepath in list_of_rois}
+        if list_of_rois is not None:
+            self.roi_dict = {os.path.basename(video_filepath): roi_entry for roi_entry, video_filepath in list_of_rois}
+        else:
+            self.roi_dict = {os.path.basename(video_filepath): None for roi_entry, video_filepath in video_filepaths}
 
         # Create a tuple of VideoFile objects
         video_files = tuple(VideoFilePassive(filepath) for filepath in video_filepaths)
@@ -177,58 +180,77 @@ class FrameGenerator():
         num_frames = metadata['frame_numbers']
         num_visits = metadata['visit_numbers']
 
-        # Loop over each ROI
-        for i, point in enumerate(rois):
-            #print("(G) - Generator entered the loop")
-            x, y = point
-
+        # If rois is None aka no cropping should be done
+        if rois is None:
             # Pre-allocate cropped frames for this ROI
-            cropped_frames = np.empty((len(num_frames), crop_size, crop_size, 3), dtype=batch_frames.dtype)
-            #print("(G) - Generator pre-allocated the array")
+            cropped_frames = batch_frames
 
             # Create meta info
             meta_data = {
                 'video_name': metadata['video_name'],
                 'frame_numbers': num_frames,
                 'visit_numbers': num_visits,
-                'roi_number': i + 1,
+                'roi_number': 0,
                 'coords': []
             }
 
-            # Loop over each frame
             for idx, frame_number in enumerate(num_frames):
+                _, frame_height, frame_width, _ = batch_frames[idx].shape
+                meta_data['coords'].append(((0, 0), (frame_width, frame_height)))
 
-                # Get frame dimensions here
-                frame_height, frame_width, _ = batch_frames[idx].shape
+        else:
+            # Loop over each ROI
+            for i, point in enumerate(rois):
+                #print("(G) - Generator entered the loop")
+                x, y = point
 
-                # Check if any of the dimensions are smaller than crop_size
-                if frame_height < crop_size or frame_width < crop_size:
-                    scaling_factor = crop_size / min(frame_height, frame_width)
-                    new_width = int(round(frame_width * scaling_factor))
-                    new_height = int(round(frame_height * scaling_factor))
+                # Pre-allocate cropped frames for this ROI
+                cropped_frames = np.empty((len(num_frames), crop_size, crop_size, 3), dtype=batch_frames.dtype)
+                #print("(G) - Generator pre-allocated the array")
 
-                    # Upscale the frame using cv2.resize with Lanczos up-scaling algorithm
-                    batch_frames[idx] = cv2.resize(batch_frames[idx], (new_width, new_height),
-                                                   interpolation=cv2.INTER_LANCZOS4)
+                # Create meta info
+                meta_data = {
+                    'video_name': metadata['video_name'],
+                    'frame_numbers': num_frames,
+                    'visit_numbers': num_visits,
+                    'roi_number': i + 1,
+                    'coords': []
+                }
 
-                    # Update dimensions
-                    frame_height, frame_width, _ = batch_frames[frame_number].shape
+                # Loop over each frame
+                for idx, frame_number in enumerate(num_frames):
 
-                # Get the random offset
-                x_offset = random.randint(-offset_range, offset_range)
-                y_offset = random.randint(-offset_range, offset_range)
+                    # Get frame dimensions here
+                    frame_height, frame_width, _ = batch_frames[idx].shape
 
-                # Calculate the coordinates for the area that will be cropped
-                x1 = max(0, min(((x - crop_size // 2) + x_offset), frame_width - crop_size))
-                y1 = max(0, min(((y - crop_size // 2) + y_offset), frame_height - crop_size))
-                x2 = max(crop_size, min(((x + crop_size // 2) + x_offset), frame_width))
-                y2 = max(crop_size, min(((y + crop_size // 2) + y_offset), frame_height))
+                    # Check if any of the dimensions are smaller than crop_size
+                    if frame_height < crop_size or frame_width < crop_size:
+                        scaling_factor = crop_size / min(frame_height, frame_width)
+                        new_width = int(round(frame_width * scaling_factor))
+                        new_height = int(round(frame_height * scaling_factor))
 
-                # Crop the frame
-                cropped_frames[idx] = batch_frames[idx, y1:y2, x1:x2]
-                #print(f"(G) - Generator cropped a frame <{idx}>")
+                        # Upscale the frame using cv2.resize with Lanczos up-scaling algorithm
+                        batch_frames[idx] = cv2.resize(batch_frames[idx], (new_width, new_height),
+                                                       interpolation=cv2.INTER_LANCZOS4)
 
-                meta_data['coords'].append(((x1, y1), (x2, y2)))
-            #print("(G) - Generator packed metadata and frames")
+                        # Update dimensions
+                        frame_height, frame_width, _ = batch_frames[frame_number].shape
+
+                    # Get the random offset
+                    x_offset = random.randint(-offset_range, offset_range)
+                    y_offset = random.randint(-offset_range, offset_range)
+
+                    # Calculate the coordinates for the area that will be cropped
+                    x1 = max(0, min(((x - crop_size // 2) + x_offset), frame_width - crop_size))
+                    y1 = max(0, min(((y - crop_size // 2) + y_offset), frame_height - crop_size))
+                    x2 = max(crop_size, min(((x + crop_size // 2) + x_offset), frame_width))
+                    y2 = max(crop_size, min(((y + crop_size // 2) + y_offset), frame_height))
+
+                    # Crop the frame
+                    cropped_frames[idx] = batch_frames[idx, y1:y2, x1:x2]
+                    #print(f"(G) - Generator cropped a frame <{idx}>")
+
+                    meta_data['coords'].append(((x1, y1), (x2, y2)))
+                #print("(G) - Generator packed metadata and frames")
 
             yield cropped_frames, meta_data
