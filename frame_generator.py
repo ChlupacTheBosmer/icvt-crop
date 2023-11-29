@@ -178,7 +178,7 @@ class FrameGenerator():
 
     def get_cropped_frames(self, batch_frames, metadata, rois, crop_size=640, offset_range=100):
         #print("(G) - Generator initiated")
-        _, frame_height, frame_width, _ = batch_frames.shape
+        _, frame_width, frame_height, _ = batch_frames.shape
         num_frames = metadata['frame_numbers']
         num_visits = metadata['visit_numbers']
         print(rois[0])
@@ -186,7 +186,7 @@ class FrameGenerator():
         if rois[0] is None:
             print(rois[0])
             # Pre-allocate cropped frames for this ROI
-            cropped_frames = np.empty((len(num_frames), frame_height, frame_width, 3), dtype=batch_frames.dtype)
+            cropped_frames = np.empty((len(num_frames), frame_width, frame_height, 3), dtype=batch_frames.dtype)
 
             # Create meta info
             meta_data = {
@@ -198,8 +198,8 @@ class FrameGenerator():
             }
             print("test1")
             for idx, frame_number in enumerate(num_frames):
-                frame_height, frame_width, *_ = batch_frames[idx].shape
-                cropped_frames[idx] = batch_frames[idx, 0:frame_height, 0:frame_width]
+                frame_width, frame_height, *_ = batch_frames[idx].shape
+                cropped_frames[idx] = batch_frames[idx]
                 meta_data['coords'].append(((0, 0), (frame_width, frame_height)))
                 print("test2")
 
