@@ -130,8 +130,8 @@ class FrameGenerator():
                 print(f"(C) - Consumer {name} got item from the queue.")
                 if frames_array is None:
                     print(f"(C) - Consumer {name} finished.")
-                    # yolo_queue.put((None, None))
-                    # yolo_queue.put((None, None))
+                    yolo_queue.put((None, None))
+                    yolo_queue.put((None, None))
                     break
                 frame_numbers = meta_data['frame_numbers']
                 video_filename = meta_data['video_name']
@@ -150,7 +150,6 @@ class FrameGenerator():
             while True:
                 print(f"(D) - Detector {name} entered the loop.")
                 frames_array, meta_data = yolo_queue.get()
-                print(frames_array)
                 print(f"(D) - Detector {name} got item from the queue.")
                 if frames_array is None:
                     print(f"(D) - Detector {name} finished.")
