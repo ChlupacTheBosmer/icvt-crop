@@ -90,7 +90,7 @@ class FrameGenerator():
         try:
             filename = video_object_file.filename
 
-            frame_batch_size = 20  # Maximum chunk size
+            frame_batch_size = 1  # Maximum chunk size
 
             # Iterate through chunks
             for frame_numbers_chunk, visit_numbers_chunk, actual_chunk_size in self.chunk_tuple(frame_indices, visit_indices, frame_batch_size):
