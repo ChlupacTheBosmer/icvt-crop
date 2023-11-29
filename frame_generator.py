@@ -90,7 +90,7 @@ class FrameGenerator():
         try:
             filename = video_object_file.filename
 
-            frame_batch_size = 100  # Maximum chunk size
+            frame_batch_size = 20  # Maximum chunk size
 
             # Iterate through chunks
             for frame_numbers_chunk, visit_numbers_chunk, actual_chunk_size in self.chunk_tuple(frame_indices, visit_indices, frame_batch_size):
@@ -115,6 +115,7 @@ class FrameGenerator():
                     'video_name': filename
                 }
                 #print("(P) - Metadata packed")
+                print(frames_array)
                 queue.put((frames_array, meta_data))
                 #print("(P) - Package added to the queue")
                 #print(f"(P) - Producer <{filename}> added batch <{frame_numbers_chunk[0]} - {frame_numbers_chunk[-1:][0]}> to queue.")
