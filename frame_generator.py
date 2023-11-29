@@ -185,7 +185,7 @@ class FrameGenerator():
         if rois[0] is None:
             print(rois[0])
             # Pre-allocate cropped frames for this ROI
-            cropped_frames = np.empty((len(num_frames), frame_width, frame_height, 3), dtype=batch_frames.dtype)
+            cropped_frames = np.empty((len(num_frames), frame_height, frame_width, 3), dtype=batch_frames.dtype)
 
             # Create meta info
             meta_data = {
