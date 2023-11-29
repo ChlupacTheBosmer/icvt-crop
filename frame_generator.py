@@ -182,6 +182,7 @@ class FrameGenerator():
         print(rois[0])
         # If rois is None aka no cropping should be done
         if rois[0] is None:
+            print(rois[0])
             # Pre-allocate cropped frames for this ROI
             cropped_frames = batch_frames
 
@@ -199,7 +200,6 @@ class FrameGenerator():
                 meta_data['coords'].append(((0, 0), (frame_width, frame_height)))
 
             yield cropped_frames, meta_data
-
         else:
             # Loop over each ROI
             for i, point in enumerate(rois):
