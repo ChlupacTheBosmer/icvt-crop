@@ -194,10 +194,11 @@ class FrameGenerator():
                 'roi_number': 0,
                 'coords': []
             }
-
+            print("test1")
             for idx, frame_number in enumerate(num_frames):
                 _, frame_height, frame_width, _ = batch_frames[idx].shape
                 meta_data['coords'].append(((0, 0), (frame_width, frame_height)))
+                print("test2")
 
             yield cropped_frames, meta_data
         else:
