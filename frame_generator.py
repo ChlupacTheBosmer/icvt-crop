@@ -179,9 +179,9 @@ class FrameGenerator():
         _, frame_height, frame_width, _ = batch_frames.shape
         num_frames = metadata['frame_numbers']
         num_visits = metadata['visit_numbers']
-        print(rois)
+        print(rois[0])
         # If rois is None aka no cropping should be done
-        if rois is None:
+        if rois[0] is None:
             # Pre-allocate cropped frames for this ROI
             cropped_frames = batch_frames
 
