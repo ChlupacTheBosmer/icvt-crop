@@ -22,7 +22,7 @@ class FrameGenerator():
         if list_of_rois is not None:
             self.roi_dict = {os.path.basename(video_filepath): roi_entry for roi_entry, video_filepath in list_of_rois}
         else:
-            self.roi_dict = {os.path.basename(video_filepath): None for roi_entry, video_filepath in video_filepaths}
+            self.roi_dict = {os.path.basename(video_filepath): None for video_filepath in video_filepaths}
 
         # Create a tuple of VideoFile objects
         video_files = tuple(VideoFilePassive(filepath) for filepath in video_filepaths)
