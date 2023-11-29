@@ -123,13 +123,13 @@ class FrameGenerator():
 
     def consumer_task(self, name, crop_queue, yolo_queue):
         try:
-            #print(f"(C) - Consumer {name} created.")
+            print(f"(C) - Consumer {name} created.")
             while True:
-                #print(f"(C) - Consumer {name} entered the loop.")
+                print(f"(C) - Consumer {name} entered the loop.")
                 frames_array, meta_data = crop_queue.get()
-                #print(f"(C) - Consumer {name} got item from the queue.")
+                print(f"(C) - Consumer {name} got item from the queue.")
                 if frames_array is None:
-                    #print(f"(C) - Consumer {name} finished.")
+                    print(f"(C) - Consumer {name} finished.")
                     yolo_queue.put((None, None))
                     yolo_queue.put((None, None))
                     break
@@ -140,25 +140,25 @@ class FrameGenerator():
                 cropped_frames = self.get_cropped_frames(frames_array, meta_data, rois, self.crop_size, self.offset_range)
                 for batch_array, meta_data in cropped_frames:
                     yolo_queue.put((batch_array, meta_data))
-                    #print(f"(C) - Consumer added item into the queue")
+                    print(f"(C) - Consumer added item into the queue")
         except Exception as e:
             print(f"(C) ERROR: - {e}")
 
     def detector_task(self, name, visitor_category_dict, yolo_queue):
         try:
-            #print(f"(D) - Detector {name} created.")
+            print(f"(D) - Detector {name} created.")
             while True:
-                #print(f"(D) - Detector {name} entered the loop.")
+                print(f"(D) - Detector {name} entered the loop.")
                 frames_array, meta_data = yolo_queue.get()
-                #print(f"(D) - Detector {name} got item from the queue.")
+                print(f"(D) - Detector {name} got item from the queue.")
                 if frames_array is None:
-                    #print(f"(D) - Detector {name} finished.")
+                    print(f"(D) - Detector {name} finished.")
                     break
 
                 frame_numbers = meta_data['frame_numbers']
                 video_filename = meta_data['video_name']
                 coords = meta_data['coords']
-                #print(f"(D) - Detector {name} got element <{frame_numbers[0]} - {frame_numbers[-1:]}>")
+                print(f"(D) - Detector {name} got element <{frame_numbers[0]} - {frame_numbers[-1:]}>")
 
                 detection_metadata = detect_visitors_in_frame_array(frames_array, meta_data, self.model_path)
                 for idx, (frame_number, roi_number, visit_number, detection, _, boxes, *_) in enumerate(detection_metadata):
