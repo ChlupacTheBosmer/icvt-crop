@@ -139,6 +139,7 @@ class FrameGenerator():
                 #print(f"(C) - Consumer {name} got element <{frame_numbers[0]} - {frame_numbers[-1:]}>")
                 cropped_frames = self.get_cropped_frames(frames_array, meta_data, rois, self.crop_size, self.offset_range)
                 for batch_array, meta_data in cropped_frames:
+                    print(batch_array)
                     yolo_queue.put((batch_array, meta_data))
                     print(f"(C) - Consumer added item into the queue")
         except Exception as e:
