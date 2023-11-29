@@ -11,12 +11,13 @@ import itertools
 
 
 class FrameGenerator():
-    def __init__(self, video_filepaths: tuple, frame_data_dict, list_of_rois, crop_size, offset_range, name_prefix, output_folder):
+    def __init__(self, video_filepaths: tuple, frame_data_dict, list_of_rois, crop_size, offset_range, name_prefix, output_folder, model_path: str = os.path.join('resources', 'yolo', 'best.pt')):
 
         self.crop_size = crop_size
         self.offset_range = offset_range
         self.name_prefix = name_prefix
         self.output_folder = output_folder
+        self.model_path = model_path
 
         # Create a dictionary for fast ROI lookup
         if list_of_rois is not None:
@@ -159,7 +160,7 @@ class FrameGenerator():
                 coords = meta_data['coords']
                 #print(f"(D) - Detector {name} got element <{frame_numbers[0]} - {frame_numbers[-1:]}>")
 
-                detection_metadata = detect_visitors_in_frame_array(frames_array, meta_data, os.path.join('resources', 'yolo', 'best.pt'))
+                detection_metadata = detect_visitors_in_frame_array(frames_array, meta_data, self.model_path)
                 for idx, (frame_number, roi_number, visit_number, detection, _, boxes, *_) in enumerate(detection_metadata):
                     frame_name = f"{self.name_prefix}_{video_filename}_{roi_number}_{frame_number}_{visit_number}_{coords[idx][0]}_{coords[idx][1]}.jpg"
                     output_path = os.path.join(self.output_folder, "visitor") if detection > 0 else os.path.join(self.output_folder, "empty")
