@@ -115,10 +115,9 @@ class FrameGenerator():
                     'video_name': filename
                 }
                 #print("(P) - Metadata packed")
-                print(frames_array)
                 queue.put((frames_array, meta_data))
                 #print("(P) - Package added to the queue")
-                #print(f"(P) - Producer <{filename}> added batch <{frame_numbers_chunk[0]} - {frame_numbers_chunk[-1:][0]}> to queue.")
+                print(f"(P) - Producer <{filename}> added batch <{frame_numbers_chunk[0]} - {frame_numbers_chunk[-1:][0]}> to queue.")
         except Exception as e:
             print(f"(P) ERROR: - {e}")
 
@@ -137,7 +136,7 @@ class FrameGenerator():
                 frame_numbers = meta_data['frame_numbers']
                 video_filename = meta_data['video_name']
                 rois = self.roi_dict[video_filename]
-                #print(f"(C) - Consumer {name} got element <{frame_numbers[0]} - {frame_numbers[-1:]}>")
+                print(f"(C) - Consumer {name} got element <{frame_numbers[0]} - {frame_numbers[-1:]}>")
                 cropped_frames = self.get_cropped_frames(frames_array, meta_data, rois, self.crop_size, self.offset_range)
                 for batch_array, meta_data in cropped_frames:
                     yolo_queue.put((batch_array, meta_data))
