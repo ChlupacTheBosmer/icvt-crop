@@ -202,7 +202,7 @@ class FrameGenerator():
                 meta_data['coords'].append(((0, 0), (frame_width, frame_height)))
                 print("test2")
 
-            yield cropped_frames, meta_data
+                yield cropped_frames, meta_data
         else:
             # Loop over each ROI
             for i, point in enumerate(rois):
